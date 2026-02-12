@@ -1,4 +1,4 @@
--- name: CreateAuthor :one
+-- name: CreateUser :one
 INSERT INTO users (
     email, username, password_hash, display_name
 ) VALUES (

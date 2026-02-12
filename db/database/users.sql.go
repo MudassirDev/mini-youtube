@@ -7,10 +7,9 @@ package database
 
 import (
 	"context"
-	"database/sql"
 )
 
-const createAuthor = `-- name: CreateAuthor :one
+const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     email, username, password_hash, display_name
 ) VALUES (
@@ -19,15 +18,15 @@ INSERT INTO users (
 RETURNING id, email, username, password_hash, display_name, created_at, updated_at
 `
 
-type CreateAuthorParams struct {
-	Email        string
-	Username     string
-	PasswordHash string
-	DisplayName  sql.NullString
+type CreateUserParams struct {
+	Email        string `json:"email"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"password_hash"`
+	DisplayName  string `json:"display_name"`
 }
 
-func (q *Queries) CreateAuthor(ctx context.Context, arg CreateAuthorParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createAuthor,
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Email,
 		arg.Username,
 		arg.PasswordHash,

@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/MudassirDev/mini-youtube/db/database"
 	"github.com/MudassirDev/mini-youtube/internal/web"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -78,7 +79,9 @@ func init() {
 
 	log.Println("ran migrations successfully: ", result)
 
-	handler := web.CreateMux()
+	queries := database.New(conn)
+
+	handler := web.CreateMux(queries)
 
 	CONN = conn
 	PORT = envs["PORT"]
