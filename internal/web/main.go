@@ -27,6 +27,7 @@ func CreateMux(queries *database.Queries, jwtSecret string) *http.ServeMux {
 
 	mux.HandleFunc("POST /api/users/create", apiCfg.handleUserCreate)
 	mux.HandleFunc("POST /api/users/login", apiCfg.handleUserLogin)
+	mux.HandleFunc("DELETE /api/users/login", apiCfg.handleUserLogout)
 
 	return mux
 }

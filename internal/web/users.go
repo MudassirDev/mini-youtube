@@ -109,3 +109,16 @@ func (c *apiConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, makeResponseUser(userResult))
 }
+
+func (c *apiConfig) handleUserLogout(w http.ResponseWriter, r *http.Request) {
+	cookie := &http.Cookie{
+		Name:     AUTH_KEY,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	}
+
+	http.SetCookie(w, cookie)
+	respondWithJSON(w, http.StatusOK, "deleted cookie")
+}
