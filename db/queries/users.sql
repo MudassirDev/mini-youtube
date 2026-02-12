@@ -5,3 +5,6 @@ INSERT INTO users (
     $1, $2, $3, $4
 )
 RETURNING *;
+
+-- name: GetUserWithUsername :one
+SELECT * FROM users WHERE username = $1;

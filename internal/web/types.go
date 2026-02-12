@@ -8,14 +8,20 @@ import (
 )
 
 type apiConfig struct {
-	DB *database.Queries
+	DB         *database.Queries
+	JWT_SECRET string
 }
 
 type createUserRequest struct {
-	Email       string `json:"email" validate:"required"`
+	Email       string `json:"email" validate:"required,email"`
 	Username    string `json:"username" validate:"required"`
 	Password    string `json:"password" validate:"required"`
 	DisplayName string `json:"display_name" validate:"required"`
+}
+
+type loginUserRequest struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type user struct {

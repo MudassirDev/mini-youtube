@@ -34,9 +34,10 @@ func init() {
 	godotenv.Load()
 
 	envs := map[string]string{
-		"PORT":   "",
-		"DB_URL": "",
-		"ENV":    "",
+		"PORT":       "",
+		"DB_URL":     "",
+		"ENV":        "",
+		"JWT_SECRET": "",
 	}
 
 	for key := range envs {
@@ -81,7 +82,7 @@ func init() {
 
 	queries := database.New(conn)
 
-	handler := web.CreateMux(queries)
+	handler := web.CreateMux(queries, envs["JWT_SECRET"])
 
 	CONN = conn
 	PORT = envs["PORT"]

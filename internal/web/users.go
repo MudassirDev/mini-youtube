@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/MudassirDev/mini-youtube/db/database"
 	"github.com/MudassirDev/mini-youtube/internal/auth"
 )
 
-func (c *apiConfig) HandleUserCreate(w http.ResponseWriter, r *http.Request) {
+func (c *apiConfig) handleUserCreate(w http.ResponseWriter, r *http.Request) {
 	err := checkHeader(r)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err, err.Error())
@@ -50,12 +51,61 @@ func (c *apiConfig) HandleUserCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, user{
-		ID:          userResult.ID,
-		Email:       userResult.Email,
-		Username:    userResult.Username,
-		DisplayName: userResult.DisplayName,
-		CreatedAt:   userResult.CreatedAt,
-		UpdatedAt:   userResult.UpdatedAt,
-	})
+	respondWithJSON(w, http.StatusCreated, makeResponseUser(userResult))
+}
+
+func (c *apiConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
+	err := checkHeader(r)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err, err.Error())
+		return
+	}
+
+	var requestBody loginUserRequest
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+
+	if err := decoder.Decode(&requestBody); err != nil {
+		respondWithError(w, http.StatusBadRequest, err, "invalid payload")
+		return
+	}
+
+	err = validate.Struct(requestBody)
+	if err != nil {
+		message := getValidatorErrMsg(err)
+		respondWithError(w, http.StatusBadRequest, message, message.Error())
+		return
+	}
+
+	userResult, err := c.DB.GetUserWithUsername(context.Background(), requestBody.Username)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err, "no such user")
+		return
+	}
+
+	err = auth.VerifyPassword(requestBody.Password, userResult.PasswordHash)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err, "wrong password")
+		return
+	}
+
+	token, err := auth.CreateJWTToken(userResult.ID, EXPIRES_IN, c.JWT_SECRET)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err, "failed to create token")
+		return
+	}
+
+	cookie := &http.Cookie{
+		Name:     AUTH_KEY,
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteStrictMode,
+		Expires:  time.Now().Add(EXPIRES_IN),
+		MaxAge:   int(EXPIRES_IN),
+	}
+	http.SetCookie(w, cookie)
+
+	respondWithJSON(w, http.StatusOK, makeResponseUser(userResult))
 }

@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/MudassirDev/mini-youtube/db/database"
 	"github.com/go-playground/validator/v10"
@@ -11,14 +12,21 @@ var (
 	validate = validator.New()
 )
 
-func CreateMux(queries *database.Queries) *http.ServeMux {
+const (
+	EXPIRES_IN = time.Hour * 1
+	AUTH_KEY   = "AUTH_KEY"
+)
+
+func CreateMux(queries *database.Queries, jwtSecret string) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	apiCfg := apiConfig{
-		DB: queries,
+		DB:         queries,
+		JWT_SECRET: jwtSecret,
 	}
 
-	mux.HandleFunc("POST /users", apiCfg.HandleUserCreate)
+	mux.HandleFunc("POST /api/users/create", apiCfg.handleUserCreate)
+	mux.HandleFunc("POST /api/users/login", apiCfg.handleUserLogin)
 
 	return mux
 }
