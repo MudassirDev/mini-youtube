@@ -13,10 +13,8 @@ import (
 func (c *apiConfig) handleUserCreate() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var requestBody createUserRequest
-		decoder := json.NewDecoder(r.Body)
 		defer r.Body.Close()
-
-		if err := decoder.Decode(&requestBody); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 			respondWithError(w, http.StatusBadRequest, err, "invalid payload")
 			return
 		}
@@ -53,10 +51,8 @@ func (c *apiConfig) handleUserCreate() http.Handler {
 func (c *apiConfig) handleUserLogin() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var requestBody loginUserRequest
-		decoder := json.NewDecoder(r.Body)
 		defer r.Body.Close()
-
-		if err := decoder.Decode(&requestBody); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 			respondWithError(w, http.StatusBadRequest, err, "invalid payload")
 			return
 		}

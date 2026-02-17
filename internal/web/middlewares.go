@@ -22,7 +22,7 @@ func (c *apiConfig) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		context := context.WithValue(r.Context(), AUTH_KEY, userID)
+		context := context.WithValue(r.Context(), AUTH_KEY, userID.String())
 		next.ServeHTTP(w, r.WithContext(context))
 	})
 }

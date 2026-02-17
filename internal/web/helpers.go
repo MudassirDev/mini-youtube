@@ -7,7 +7,23 @@ import (
 
 	"github.com/MudassirDev/mini-youtube/db/database"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
+
+func getUserIDFromContext(w http.ResponseWriter, r *http.Request) (uuid.UUID, error) {
+	rawID := r.Context().Value(AUTH_KEY)
+	stringID, ok := rawID.(string)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, errors.New("invalid user id"), "user unauthorized")
+		return uuid.Nil, errors.New("invalid user id")
+	}
+	userID, err := uuid.Parse(stringID)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err, "user unauthorized")
+		return uuid.Nil, err
+	}
+	return userID, nil
+}
 
 func checkPostHeader(r *http.Request) error {
 	if r.Header.Get("Content-Type") != "application/json" {

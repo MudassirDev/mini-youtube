@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Videos</title>
+    <link rel="stylesheet" href="/assets/css/global.css">
+</head>
+<body>
+    <form action="/api/users/videos/upload" method="POST" id="upload-video">
+        <input type="text" name="name" required>
+        <input type="text" name="description" required>
+        <input type="file" name="video" required>
+        <input type="submit" value="upload file">
+    </form>
+    
+    <script src="/assets/js/videos.js"></script>
+</body>
+</html>

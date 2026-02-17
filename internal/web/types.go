@@ -1,6 +1,7 @@
 package web
 
 import (
+	"text/template"
 	"time"
 
 	"github.com/MudassirDev/mini-youtube/db/database"
@@ -10,6 +11,7 @@ import (
 type apiConfig struct {
 	DB         *database.Queries
 	JWT_SECRET string
+	Templates  *template.Template
 }
 
 type createUserRequest struct {
