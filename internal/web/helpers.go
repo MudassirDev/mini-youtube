@@ -9,7 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func checkHeader(r *http.Request) error {
+func checkPostHeader(r *http.Request) error {
 	if r.Header.Get("Content-Type") != "application/json" {
 		return errors.New("invalid content type header")
 	}

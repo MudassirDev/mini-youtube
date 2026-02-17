@@ -25,9 +25,13 @@ func CreateMux(queries *database.Queries, jwtSecret string) *http.ServeMux {
 		JWT_SECRET: jwtSecret,
 	}
 
-	mux.HandleFunc("POST /api/users/create", apiCfg.handleUserCreate)
-	mux.HandleFunc("POST /api/users/login", apiCfg.handleUserLogin)
+	mux.Handle("POST /api/users/create", apiCfg.postMiddleware(apiCfg.handleUserCreate()))
+	mux.Handle("POST /api/users/login", apiCfg.postMiddleware(apiCfg.handleUserLogin()))
 	mux.HandleFunc("DELETE /api/users/login", apiCfg.handleUserLogout)
+
+	mux.Handle("POST /api/users/videos/create", apiCfg.authMiddleware(
+		apiCfg.postMiddleware(apiCfg.videoUploadHandler()),
+	))
 
 	return mux
 }

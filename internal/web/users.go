@@ -10,104 +10,96 @@ import (
 	"github.com/MudassirDev/mini-youtube/internal/auth"
 )
 
-func (c *apiConfig) handleUserCreate(w http.ResponseWriter, r *http.Request) {
-	err := checkHeader(r)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err, err.Error())
-		return
-	}
+func (c *apiConfig) handleUserCreate() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var requestBody createUserRequest
+		decoder := json.NewDecoder(r.Body)
+		defer r.Body.Close()
 
-	var requestBody createUserRequest
-	decoder := json.NewDecoder(r.Body)
-	defer r.Body.Close()
+		if err := decoder.Decode(&requestBody); err != nil {
+			respondWithError(w, http.StatusBadRequest, err, "invalid payload")
+			return
+		}
 
-	if err := decoder.Decode(&requestBody); err != nil {
-		respondWithError(w, http.StatusBadRequest, err, "invalid payload")
-		return
-	}
+		err := validate.Struct(requestBody)
+		if err != nil {
+			message := getValidatorErrMsg(err)
+			respondWithError(w, http.StatusBadRequest, message, message.Error())
+			return
+		}
 
-	err = validate.Struct(requestBody)
-	if err != nil {
-		message := getValidatorErrMsg(err)
-		respondWithError(w, http.StatusBadRequest, message, message.Error())
-		return
-	}
+		password, err := auth.HashPassword(requestBody.Password)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err, "failed to encrypt password")
+			return
+		}
 
-	password, err := auth.HashPassword(requestBody.Password)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err, "failed to encrypt password")
-		return
-	}
+		userResult, err := c.DB.CreateUser(context.Background(), database.CreateUserParams{
+			Email:        requestBody.Email,
+			Username:     requestBody.Username,
+			PasswordHash: password,
+			DisplayName:  requestBody.DisplayName,
+		})
 
-	userResult, err := c.DB.CreateUser(context.Background(), database.CreateUserParams{
-		Email:        requestBody.Email,
-		Username:     requestBody.Username,
-		PasswordHash: password,
-		DisplayName:  requestBody.DisplayName,
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err, "failed to create user")
+			return
+		}
+
+		respondWithJSON(w, http.StatusCreated, makeResponseUser(userResult))
 	})
-
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err, "failed to create user")
-		return
-	}
-
-	respondWithJSON(w, http.StatusCreated, makeResponseUser(userResult))
 }
 
-func (c *apiConfig) handleUserLogin(w http.ResponseWriter, r *http.Request) {
-	err := checkHeader(r)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err, err.Error())
-		return
-	}
+func (c *apiConfig) handleUserLogin() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var requestBody loginUserRequest
+		decoder := json.NewDecoder(r.Body)
+		defer r.Body.Close()
 
-	var requestBody loginUserRequest
-	decoder := json.NewDecoder(r.Body)
-	defer r.Body.Close()
+		if err := decoder.Decode(&requestBody); err != nil {
+			respondWithError(w, http.StatusBadRequest, err, "invalid payload")
+			return
+		}
 
-	if err := decoder.Decode(&requestBody); err != nil {
-		respondWithError(w, http.StatusBadRequest, err, "invalid payload")
-		return
-	}
+		err := validate.Struct(requestBody)
+		if err != nil {
+			message := getValidatorErrMsg(err)
+			respondWithError(w, http.StatusBadRequest, message, message.Error())
+			return
+		}
 
-	err = validate.Struct(requestBody)
-	if err != nil {
-		message := getValidatorErrMsg(err)
-		respondWithError(w, http.StatusBadRequest, message, message.Error())
-		return
-	}
+		userResult, err := c.DB.GetUserWithUsername(context.Background(), requestBody.Username)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, err, "no such user")
+			return
+		}
 
-	userResult, err := c.DB.GetUserWithUsername(context.Background(), requestBody.Username)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err, "no such user")
-		return
-	}
+		err = auth.VerifyPassword(requestBody.Password, userResult.PasswordHash)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, err, "wrong password")
+			return
+		}
 
-	err = auth.VerifyPassword(requestBody.Password, userResult.PasswordHash)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err, "wrong password")
-		return
-	}
+		token, err := auth.CreateJWTToken(userResult.ID, EXPIRES_IN, c.JWT_SECRET)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err, "failed to create token")
+			return
+		}
 
-	token, err := auth.CreateJWTToken(userResult.ID, EXPIRES_IN, c.JWT_SECRET)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err, "failed to create token")
-		return
-	}
+		cookie := &http.Cookie{
+			Name:     AUTH_KEY,
+			Value:    token,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false,
+			SameSite: http.SameSiteStrictMode,
+			Expires:  time.Now().Add(EXPIRES_IN),
+			MaxAge:   int(EXPIRES_IN),
+		}
+		http.SetCookie(w, cookie)
 
-	cookie := &http.Cookie{
-		Name:     AUTH_KEY,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteStrictMode,
-		Expires:  time.Now().Add(EXPIRES_IN),
-		MaxAge:   int(EXPIRES_IN),
-	}
-	http.SetCookie(w, cookie)
-
-	respondWithJSON(w, http.StatusOK, makeResponseUser(userResult))
+		respondWithJSON(w, http.StatusOK, makeResponseUser(userResult))
+	})
 }
 
 func (c *apiConfig) handleUserLogout(w http.ResponseWriter, r *http.Request) {
